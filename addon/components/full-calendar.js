@@ -218,6 +218,22 @@ export default Ember.Component.extend(InvokeActionMixin, {
   }),
 
   /**
+   * Observes the 'now' property allowing FullCalendar view to be
+   * update nowIndcator. This is done by destroying and recreating
+   * calendar (which is overkill but the only way to do it from
+   * outside of fullcalendar)
+   */
+  nowDidChange: Ember.observer('now', function () { 
+    const options =
+      Object.assign(
+        this.get('options'),
+        this.get('hooks')
+      );
+    options.now = this.get('now');
+    this.$().fullCalendar('destroy');
+    this.$().fullCalendar(options)
+  }),
+  /**
    * Observes the 'viewName' property allowing FullCalendar view to be
    * changed from outside of the component.
    */
