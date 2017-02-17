@@ -1,8 +1,8 @@
 import Ember from 'ember';
 import layout from '../templates/components/full-calendar';
 import { InvokeActionMixin } from 'ember-invoke-action';
-const { get, isArray, getProperties, observer, computed } = Ember;
-import getOwner from 'ember-getowner-polyfill';
+
+const { assign, observer, computed, getOwner } = Ember;
 
 export default Ember.Component.extend(InvokeActionMixin, {
 
@@ -35,9 +35,12 @@ export default Ember.Component.extend(InvokeActionMixin, {
 
   fullCalendarOptions: [
     // general display
-    'header', 'customButtons', 'buttonIcons', 'theme', 'themeButtonIcons', 'firstDay', 'isRTL', 'weekends', 'hiddenDays',
+    'header', 'footer', 'customButtons', 'buttonIcons', 'theme', 'themeButtonIcons', 'firstDay', 'isRTL', 'weekends', 'hiddenDays',
     'fixedWeekCount', 'weekNumbers', 'weekNumberCalculation', 'businessHours', 'height', 'contentHeight', 'aspectRatio',
-    'handleWindowResize', 'eventLimit',
+    'handleWindowResize', 'eventLimit', 'weekNumbersWithinDays',
+
+    // clicking & hovering
+    'navLinks',
 
     // timezone
     'timezone', 'now',
@@ -49,15 +52,18 @@ export default Ember.Component.extend(InvokeActionMixin, {
     'allDaySlot', 'allDayText', 'slotDuration', 'slotLabelFormat', 'slotLabelInterval', 'snapDuration', 'scrollTime',
     'minTime', 'maxTime', 'slotEventOverlap',
 
+    // list options
+    'listDayFormat', 'listDayAltFormat', 'noEventsMessage',
+
     // current date
     'nowIndicator',
 
     // text/time customization
-    'lang', 'timeFormat', 'columnFormat', 'titleFormat', 'buttonText', 'monthNames', 'monthNamesShort', 'dayNames',
+    'locale', 'timeFormat', 'columnFormat', 'titleFormat', 'buttonText', 'monthNames', 'monthNamesShort', 'dayNames',
     'dayNamesShort', 'weekNumberTitle', 'displayEventTime', 'displayEventEnd', 'eventLimitText', 'dayPopoverFormat',
 
     // selection
-    'selectable', 'selectHelper', 'unselectAuto', 'unselectCancel', 'selectOverlap', 'selectConstraint',
+    'selectable', 'selectHelper', 'unselectAuto', 'unselectCancel', 'selectOverlap', 'selectConstraint', 'selectAllow',
 
     // event data
     'events', 'eventSources', 'allDayDefault', 'startParam', 'endParam', 'timezoneParam', 'lazyFetching',
@@ -65,10 +71,11 @@ export default Ember.Component.extend(InvokeActionMixin, {
 
     // event rendering
     'eventColor', 'eventBackgroundColor', 'eventBorderColor', 'eventTextColor', 'nextDayThreshold', 'eventOrder',
+    'eventRenderWait',
 
     // event dragging & resizing
     'editable', 'eventStartEditable', 'eventDurationEditable', 'dragRevertDuration', 'dragOpacity', 'dragScroll',
-    'eventOverlap', 'eventConstraint', 'longPressDelay',
+    'eventOverlap', 'eventConstraint', 'eventAllow', 'longPressDelay', 'eventLongPressDelay', 'selectLongPressDelay',
 
     // dropping external elements
     'droppable', 'dropAccept',
@@ -77,10 +84,10 @@ export default Ember.Component.extend(InvokeActionMixin, {
     'resourceAreaWidth', 'resourceLabelText', 'resourceColumns', 'slotWidth',
 
     // resource data
-    'resources', 'eventResourceField',
+    'resources', 'eventResourceField', 'refetchResourcesOnNavigate',
 
     // resource rendering
-    'resourceOrder', 'resourceGroupField', 'resourceGroupText',
+    'resourceOrder', 'resourceGroupField', 'resourceGroupText', 'filterResourcesWithEvents',
 
     // vertical resource view
     'groupByResource', 'groupByDateAndResource'
@@ -91,7 +98,7 @@ export default Ember.Component.extend(InvokeActionMixin, {
     'viewRender', 'viewDestroy', 'dayRender', 'windowResize',
 
     // clicking and hovering
-    'dayClick', 'eventClick', 'eventMouseover', 'eventMouseout',
+    'dayClick', 'eventClick', 'eventMouseover', 'eventMouseout', 'navLinkDayClick', 'navLinkWeekClick',
 
     // selection
     'select', 'unselect',
@@ -120,7 +127,7 @@ export default Ember.Component.extend(InvokeActionMixin, {
   didInsertElement() {
 
     const options =
-      Object.assign(
+      assign(
         this.get('options'),
         this.get('hooks')
       );
@@ -214,7 +221,28 @@ export default Ember.Component.extend(InvokeActionMixin, {
      const fc = this.$();
      fc.fullCalendar('removeEvents');
      fc.fullCalendar('addEventSource', this.get('events'));
-     fc.fullCalendar('rerenderEvents');
+  }),
+
+  /**
+   * Observe the eventSources array for any changes and
+   * re-render if changes are detected
+   */
+  observeEventSources: observer('eventSources.[]', function () {
+     const fc = this.$();
+     fc.fullCalendar('removeEventSources');
+     this.get('eventSources').forEach(function(source){
+       fc.fullCalendar('addEventSource', source);
+     });
+  }),
+
+  /**
+   * Observes the resources array and refreshes the resource view
+   * if any changes are detected
+   * @type {[type]}
+   */
+  observeResources: observer('resources.[]', function() {
+    const fc = this.$();
+    fc.fullCalendar('refetchResources');
   }),
 
   /**
@@ -240,6 +268,11 @@ export default Ember.Component.extend(InvokeActionMixin, {
   viewNameDidChange: Ember.observer('viewName', function() {
     const viewName = this.get('viewName');
     this.$().fullCalendar('changeView', viewName);
+
+    // Call action if it exists
+    if (this.get('onViewChange')) {
+      this.get('onViewChange')(viewName);
+    }
   }),
 
   /**

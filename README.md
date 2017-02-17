@@ -1,4 +1,4 @@
-# ember-fullcalendar [![Error Tracking](https://d26gfdfi90p7cf.cloudfront.net/rollbar-badge.144534.o.png)](https://rollbar.com)
+# ember-fullcalendar
 
 [![dependencies](https://david-dm.org/scoutforpets/ember-fullcalendar.svg)](https://david-dm.org/scoutforpets/ember-fullcalendar) [![npm version](https://badge.fury.io/js/ember-fullcalendar.svg)](https://badge.fury.io/js/ember-fullcalendar)
 
@@ -14,7 +14,7 @@ To install it run:
 ```ember install ember-fullcalendar```
 
 ## Overview
-This addon currently supports every option and callback currently available for FullCalendar 2.0. Please see the [FullCalendar documentation](http://fullcalendar.io/docs/) for more information.
+This addon currently supports every option and callback currently available for FullCalendar 3.0 and FullCalendar Scheduler 1.4.0. Please see the [FullCalendar documentation](http://fullcalendar.io/docs/) for more information.
 
 *NOTE:* By default, this addon installs and imports both FullCalendar and the FullCalendar Scheduler addon. You may opt out of importing the FullCalendar Scheduler addon if it's not needed.
 
@@ -65,6 +65,8 @@ export default Ember.Controller.extend({
 Where possible, this addon takes advantage of DDAU (Data Down, Actions Up) to allow your Ember app to interact with FullCalendar from outside of the component. Below are a list of properties that override default FullCalendar properties:
 
 - `viewName` _(replaces `defaultView`)_ - allows you to change the view mode from outside of the component. For example, when using `header=false`, you can use your own buttons to modify the `viewName` property to change the view of the calendar.
+
+- `onViewChange` - pass an action to be notified when the view changes. This is different than the `viewRender` callback provided by FullCalendar as it is only triggered when the view changes and is not when any of the date navigation methods are called.
 
 - `date` _(replaces `defaultDate`)_ - allows you to change the date from outside of the component.
 
@@ -130,10 +132,4 @@ By default, the addon uses the [Free Trial License Key](http://fullcalendar.io/s
 	emberFullCalendar: {
 		schedulerLicenseKey: '<your license key>'
 	}
-```
-
-### Moment
-While not required by `ember-fullcalendar`, you may find it helpful to be able to import moment via ES6. Install [`ember-cli-moment-shims`](https://www.npmjs.com/package/ember-cli-moment-shim) to enable:
-```javascript
-import moment from 'moment';
 ```
